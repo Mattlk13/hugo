@@ -24,7 +24,6 @@ import (
 )
 
 func TestI18n(t *testing.T) {
-
 	c := qt.New(t)
 
 	//https://github.com/gohugoio/hugo/issues/7804
@@ -53,5 +52,30 @@ weight = 1
 		b.Build(BuildCfg{})
 
 		b.AssertFileContent("public/index.html", "Hello: Hello")
+	})
+}
+
+func TestLanguageBugs(t *testing.T) {
+	c := qt.New(t)
+
+	// Issue #8672
+	c.Run("Config with language, menu in root only", func(c *qt.C) {
+		b := newTestSitesBuilder(c)
+		b.WithConfigFile("toml", `
+theme = "test-theme"
+[[menus.foo]]
+name = "foo-a"
+[languages.en]
+
+`,
+		)
+
+		b.WithThemeConfigFile("toml", `[languages.en]`)
+
+		b.Build(BuildCfg{})
+
+		menus := b.H.Sites[0].Menus()
+		c.Assert(menus, qt.HasLen, 1)
+
 	})
 }

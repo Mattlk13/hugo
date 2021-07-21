@@ -29,10 +29,8 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
-var (
-	// Counts ERROR logs to the global jww logger.
-	GlobalErrorCounter *jww.Counter
-)
+// Counts ERROR logs to the global jww logger.
+var GlobalErrorCounter *jww.Counter
 
 func init() {
 	GlobalErrorCounter = &jww.Counter{}
@@ -61,6 +59,8 @@ type Logger interface {
 	Println(v ...interface{})
 	PrintTimerIfDelayed(start time.Time, name string)
 	Debug() *log.Logger
+	Debugf(format string, v ...interface{})
+	Debugln(v ...interface{})
 	Info() *log.Logger
 	Infof(format string, v ...interface{})
 	Infoln(v ...interface{})
@@ -108,6 +108,14 @@ func (l *logger) Println(v ...interface{}) {
 
 func (l *logger) Debug() *log.Logger {
 	return l.DEBUG
+}
+
+func (l *logger) Debugf(format string, v ...interface{}) {
+	l.DEBUG.Printf(format, v...)
+}
+
+func (l *logger) Debugln(v ...interface{}) {
+	l.DEBUG.Println(v...)
 }
 
 func (l *logger) Infof(format string, v ...interface{}) {
@@ -253,7 +261,6 @@ func (a labelColorizer) Write(p []byte) (n int, err error) {
 	// bytes, so we lie a little.
 	_, err = a.w.Write([]byte(replaced))
 	return len(p), err
-
 }
 
 // InitGlobalLogger initializes the global logger, used in some rare cases.
@@ -264,7 +271,6 @@ func InitGlobalLogger(stdoutThreshold, logThreshold jww.Threshold, outHandle, lo
 	jww.SetLogOutput(logHandle)
 	jww.SetLogThreshold(logThreshold)
 	jww.SetStdoutThreshold(stdoutThreshold)
-
 }
 
 func getLogWriters(outHandle, logHandle io.Writer) (io.Writer, io.Writer) {
@@ -279,7 +285,6 @@ func getLogWriters(outHandle, logHandle io.Writer) (io.Writer, io.Writer) {
 	}
 
 	return outHandle, logHandle
-
 }
 
 type fatalLogWriter int

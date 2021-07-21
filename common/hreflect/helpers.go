@@ -23,7 +23,7 @@ import (
 )
 
 // TODO(bep) replace the private versions in /tpl with these.
-// IsInt returns whether the given kind is a number.
+// IsNumber returns whether the given kind is a number.
 func IsNumber(kind reflect.Kind) bool {
 	return IsInt(kind) || IsUint(kind) || IsFloat(kind)
 }
@@ -67,7 +67,6 @@ func IsTruthful(in interface{}) bool {
 	default:
 		return IsTruthfulValue(reflect.ValueOf(in))
 	}
-
 }
 
 var zeroType = reflect.TypeOf((*types.Zeroer)(nil)).Elem()

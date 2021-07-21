@@ -127,9 +127,7 @@ type DocumentContext struct {
 type RenderContext struct {
 	Src         []byte
 	RenderTOC   bool
-	RenderHooks *hooks.Renderers
+	RenderHooks hooks.Renderers
 }
 
-var (
-	FeatureRenderHooks = identity.NewPathIdentity("markup", "renderingHooks")
-)
+var FeatureRenderHooks = identity.NewPathIdentity("markup", "renderingHooks")

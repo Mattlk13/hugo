@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gobuffalo/flect"
 	"github.com/gohugoio/hugo/markup/converter"
 
 	"github.com/gohugoio/hugo/hugofs/files"
@@ -31,7 +32,6 @@ import (
 	"github.com/gohugoio/hugo/related"
 
 	"github.com/gohugoio/hugo/source"
-	"github.com/markbates/inflect"
 	"github.com/pkg/errors"
 
 	"github.com/gohugoio/hugo/common/maps"
@@ -238,7 +238,6 @@ func (p *pageMeta) Path() string {
 
 // RelatedKeywords implements the related.Document interface needed for fast page searches.
 func (p *pageMeta) RelatedKeywords(cfg related.IndexConfig) ([]related.Keyword, error) {
-
 	v, err := p.Param(cfg.Name)
 	if err != nil {
 		return nil, err
@@ -269,7 +268,6 @@ func (p *pageMeta) Section() string {
 	}
 
 	panic("invalid page state")
-
 }
 
 func (p *pageMeta) SectionsEntries() []string {
@@ -338,41 +336,15 @@ func (pm *pageMeta) setMetadata(parentBucket *pagesMapBucket, p *pageState, fron
 
 	if frontmatter != nil {
 		// Needed for case insensitive fetching of params values
-		maps.ToLower(frontmatter)
+		maps.PrepareParams(frontmatter)
 		if p.bucket != nil {
 			// Check for any cascade define on itself.
 			if cv, found := frontmatter["cascade"]; found {
-				switch v := cv.(type) {
-				case []map[string]interface{}:
-					p.bucket.cascade = make(map[page.PageMatcher]maps.Params)
-
-					for _, vv := range v {
-						var m page.PageMatcher
-						if mv, found := vv["_target"]; found {
-							err := page.DecodePageMatcher(mv, &m)
-							if err != nil {
-								return err
-							}
-						}
-						c, found := p.bucket.cascade[m]
-						if found {
-							// Merge
-							for k, v := range vv {
-								if _, found := c[k]; !found {
-									c[k] = v
-								}
-							}
-						} else {
-							p.bucket.cascade[m] = vv
-						}
-
-					}
-				default:
-					p.bucket.cascade = map[page.PageMatcher]maps.Params{
-						page.PageMatcher{}: maps.ToStringMap(cv),
-					}
+				var err error
+				p.bucket.cascade, err = page.DecodeCascade(cv)
+				if err != nil {
+					return err
 				}
-
 			}
 		}
 	} else {
@@ -487,7 +459,6 @@ func (pm *pageMeta) setMetadata(parentBucket *pagesMapBucket, p *pageState, fron
 					// this may get its language path added twice.
 					// TODO(bep) eventually remove this.
 					p.s.Log.Warnf(`Front matter in %q with the url %q with no leading / has what looks like the language prefix added. In Hugo 0.55 we added support for page relative URLs in front matter, no language prefix needed. Check the URL and consider to either add a leading / or remove the language prefix.`, p.pathOrTitle(), url)
-
 				}
 			}
 			pm.urlPaths.URL = url
@@ -662,7 +633,6 @@ func (p *pageMeta) noListAlways() bool {
 }
 
 func (p *pageMeta) getListFilter(local bool) contentTreeNodeCallback {
-
 	return newContentTreeFilter(func(n *contentNode) bool {
 		if n == nil {
 			return true
@@ -723,7 +693,7 @@ func (p *pageMeta) applyDefaultValues(n *contentNode) error {
 
 			sectionName = helpers.FirstUpper(sectionName)
 			if p.s.Cfg.GetBool("pluralizeListTitles") {
-				p.title = inflect.Pluralize(sectionName)
+				p.title = flect.Pluralize(sectionName)
 			} else {
 				p.title = sectionName
 			}
@@ -744,7 +714,7 @@ func (p *pageMeta) applyDefaultValues(n *contentNode) error {
 	} else {
 		source := p.File()
 		if fi, ok := source.(*fileInfo); ok {
-			class := fi.FileInfo().Meta().Classifier()
+			class := fi.FileInfo().Meta().Classifier
 			switch class {
 			case files.ContentClassBranch, files.ContentClassLeaf:
 				p.bundleType = class
@@ -764,7 +734,6 @@ func (p *pageMeta) applyDefaultValues(n *contentNode) error {
 	}
 
 	return nil
-
 }
 
 func (p *pageMeta) newContentConverter(ps *pageState, markup string, renderingConfigOverrides map[string]interface{}) (converter.Converter, error) {
@@ -792,7 +761,6 @@ func (p *pageMeta) newContentConverter(ps *pageState, markup string, renderingCo
 			ConfigOverrides: renderingConfigOverrides,
 		},
 	)
-
 	if err != nil {
 		return converter.NopConverter, err
 	}

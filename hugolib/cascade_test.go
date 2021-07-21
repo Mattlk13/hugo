@@ -20,6 +20,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gohugoio/hugo/common/maps"
+
 	qt "github.com/frankban/quicktest"
 	"github.com/gohugoio/hugo/parser"
 	"github.com/gohugoio/hugo/parser/metadecoders"
@@ -50,8 +52,70 @@ func BenchmarkCascade(b *testing.B) {
 	}
 }
 
-func TestCascade(t *testing.T) {
+func TestCascadeConfig(t *testing.T) {
+	c := qt.New(t)
 
+	// Make sure the cascade from config gets applied even if we're not
+	// having a content file for the home page.
+	for _, withHomeContent := range []bool{true, false} {
+		testName := "Home content file"
+		if !withHomeContent {
+			testName = "No home content file"
+		}
+		c.Run(testName, func(c *qt.C) {
+			b := newTestSitesBuilder(c)
+
+			b.WithConfigFile("toml", `
+baseURL="https://example.org"
+
+[cascade]
+img1 = "img1-config.jpg"
+imgconfig = "img-config.jpg"
+
+`)
+
+			if withHomeContent {
+				b.WithContent("_index.md", `
+---
+title: "Home"
+cascade:
+  img1: "img1-home.jpg"
+  img2: "img2-home.jpg"
+---
+`)
+			}
+
+			b.WithContent("p1.md", ``)
+
+			b.Build(BuildCfg{})
+
+			p1 := b.H.Sites[0].getPage("p1")
+
+			if withHomeContent {
+				b.Assert(p1.Params(), qt.DeepEquals, maps.Params{
+					"imgconfig":     "img-config.jpg",
+					"draft":         bool(false),
+					"iscjklanguage": bool(false),
+					"img1":          "img1-home.jpg",
+					"img2":          "img2-home.jpg",
+				})
+			} else {
+				b.Assert(p1.Params(), qt.DeepEquals, maps.Params{
+					"img1":          "img1-config.jpg",
+					"imgconfig":     "img-config.jpg",
+					"draft":         bool(false),
+					"iscjklanguage": bool(false),
+				})
+
+			}
+
+		})
+
+	}
+
+}
+
+func TestCascade(t *testing.T) {
 	allLangs := []string{"en", "nn", "nb", "sv"}
 
 	langs := allLangs[:3]
@@ -101,9 +165,7 @@ func TestCascade(t *testing.T) {
 
 		// Check cascade into bundled page
 		b.AssertFileContent("public/bundle1/index.html", `Resources: bp1.md|home.png|`)
-
 	})
-
 }
 
 func TestCascadeEdit(t *testing.T) {
@@ -252,7 +314,6 @@ func newCascadeTestBuilder(t testing.TB, langs []string) *sitesBuilder {
 		metaStr := "---\n" + yamlStr + "\n---"
 
 		return metaStr
-
 	}
 
 	createLangConfig := func(lang string) string {
@@ -290,7 +351,6 @@ defaultContentLanguageInSubDir = false
 	b := newTestSitesBuilder(t).WithConfigFile("toml", config)
 
 	createContentFiles := func(lang string) {
-
 		withContent := func(filenameContent ...string) {
 			for i := 0; i < len(filenameContent); i += 2 {
 				b.WithContent(path.Join(lang, filenameContent[i]), filenameContent[i+1])
@@ -414,7 +474,6 @@ S1|p1:{{ $s1.Params.p1 }}|p2:{{ $s1.Params.p2 }}|
 		b.WithContent("s2/p1/index.md", "---\ntitle: p1_2\n---")
 
 		return b
-
 	}
 
 	c.Run("slice", func(c *qt.C) {
@@ -431,7 +490,6 @@ p2 = "p2"
 		b.Build(BuildCfg{})
 
 		b.AssertFileContent("public/index.html", "P1|p1:p1|p2:p2")
-
 	})
 
 	c.Run("slice with _target", func(c *qt.C) {
@@ -456,7 +514,57 @@ kind="section"
 P1|p1:p1|p2:|
 S1|p1:|p2:p2|
 `)
-
 	})
 
+	c.Run("slice with yaml _target", func(c *qt.C) {
+		b := newBuilder(c)
+
+		b.WithContent("_index.md", `---
+title: "Home"
+cascade:
+- p1: p1
+  _target:
+    path: "**p1**"
+- p2: p2
+  _target:
+    kind: "section"
+---
+`)
+
+		b.Build(BuildCfg{})
+
+		b.AssertFileContent("public/index.html", `
+P1|p1:p1|p2:|
+S1|p1:|p2:p2|
+`)
+	})
+
+	c.Run("slice with json _target", func(c *qt.C) {
+		b := newBuilder(c)
+
+		b.WithContent("_index.md", `{
+"title": "Home",
+"cascade": [
+  {
+    "p1": "p1",
+	"_target": {
+	  "path": "**p1**"
+    }
+  },{
+    "p2": "p2",
+	"_target": {
+      "kind": "section"
+    }
+  }
+]
+}
+`)
+
+		b.Build(BuildCfg{})
+
+		b.AssertFileContent("public/index.html", `
+		P1|p1:p1|p2:|
+		S1|p1:|p2:p2|
+		`)
+	})
 }

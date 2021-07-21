@@ -16,23 +16,21 @@ package commands
 import (
 	"bytes"
 	"errors"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"regexp"
 	"sync"
+	"time"
 
 	hconfig "github.com/gohugoio/hugo/config"
 
 	"golang.org/x/sync/semaphore"
 
-	"io/ioutil"
-
 	"github.com/gohugoio/hugo/common/herrors"
 	"github.com/gohugoio/hugo/common/hugo"
 
 	jww "github.com/spf13/jwalterweatherman"
-
-	"os"
-	"path/filepath"
-	"regexp"
-	"time"
 
 	"github.com/gohugoio/hugo/common/loggers"
 	"github.com/gohugoio/hugo/config"
@@ -156,7 +154,6 @@ func (c *commandeer) initFs(fs *hugofs.Fs) error {
 }
 
 func newCommandeer(mustHaveConfigFile, running bool, h *hugoBuilderCommon, f flagsToConfigHandler, cfgInit func(c *commandeer) error, subCmdVs ...*cobra.Command) (*commandeer, error) {
-
 	var rebuildDebouncer func(f func())
 	if running {
 		// The time value used is tested with mass content replacements in a fairly big Hugo site.
@@ -248,7 +245,6 @@ func (f *fileChangeDetector) PrepareNew() {
 }
 
 func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
-
 	if c.DepsCfg == nil {
 		c.DepsCfg = &deps.DepsCfg{}
 	}
@@ -277,7 +273,6 @@ func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
 	environment := c.h.getEnvironment(running)
 
 	doWithConfig := func(cfg config.Provider) error {
-
 		if c.ftch != nil {
 			c.ftch.flagsToConfig(cfg)
 		}
@@ -308,12 +303,12 @@ func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
 			WorkingDir:   dir,
 			Filename:     c.h.cfgFile,
 			AbsConfigDir: c.h.getConfigDir(dir),
-			Environ:      os.Environ(),
-			Environment:  environment},
+			Environment:  environment,
+		},
 		cfgSetAndInit,
 		doWithConfig)
 
-	if err != nil && mustHaveConfigFile {
+	if err != nil {
 		return err
 	} else if mustHaveConfigFile && len(configFiles) == 0 {
 		return hugolib.ErrNoConfigFile
@@ -389,7 +384,7 @@ func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
 		}
 
 		// To debug hard-to-find path issues.
-		//fs.Destination = hugofs.NewStacktracerFs(fs.Destination, `fr/fr`)
+		// fs.Destination = hugofs.NewStacktracerFs(fs.Destination, `fr/fr`)
 
 		err = c.initFs(fs)
 		if err != nil {
@@ -402,7 +397,6 @@ func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
 		h, err = hugolib.NewHugoSites(*c.DepsCfg)
 		c.hugoSites = h
 		close(c.created)
-
 	})
 
 	if err != nil {
@@ -415,8 +409,5 @@ func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
 	}
 	config.Set("cacheDir", cacheDir)
 
-	cfg.Logger.Infoln("Using config file:", config.ConfigFileUsed())
-
 	return nil
-
 }

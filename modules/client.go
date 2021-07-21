@@ -25,6 +25,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
+	"time"
+
+	"github.com/gohugoio/hugo/common/hexec"
 
 	hglob "github.com/gohugoio/hugo/hugofs/glob"
 
@@ -36,9 +40,6 @@ import (
 
 	"github.com/gohugoio/hugo/common/loggers"
 
-	"strings"
-	"time"
-
 	"github.com/gohugoio/hugo/config"
 
 	"github.com/rogpeppe/go-internal/module"
@@ -49,9 +50,7 @@ import (
 	"github.com/spf13/afero"
 )
 
-var (
-	fileSeparator = string(os.PathSeparator)
-)
+var fileSeparator = string(os.PathSeparator)
 
 const (
 	goBinaryStatusOK goBinaryStatus = iota
@@ -93,7 +92,6 @@ func NewClient(cfg ClientConfig) *Client {
 	if cfg.CacheDir != "" {
 		// Module cache stored below $GOPATH/pkg
 		config.SetEnvVars(&env, "GOPATH", cfg.CacheDir)
-
 	}
 
 	logger := cfg.Logger
@@ -113,7 +111,8 @@ func NewClient(cfg ClientConfig) *Client {
 		noVendor:          noVendor,
 		moduleConfig:      mcfg,
 		environ:           env,
-		GoModulesFilename: goModFilename}
+		GoModulesFilename: goModFilename,
+	}
 }
 
 // Client contains most of the API provided by this package.
@@ -165,7 +164,6 @@ func (c *Client) Graph(w io.Writer) error {
 				// Local dir.
 				dep += " => " + replace.Dir()
 			}
-
 		}
 		fmt.Fprintln(w, prefix+dep)
 	}
@@ -237,6 +235,12 @@ func (c *Client) Vendor() error {
 			// We currently do not vendor components living in the
 			// theme directory, see https://github.com/gohugoio/hugo/issues/5993
 			continue
+		}
+
+		// See https://github.com/gohugoio/hugo/issues/8239
+		// This is an error situation. We need something to vendor.
+		if t.Mounts() == nil {
+			return errors.Errorf("cannot vendor module %q, need at least one mount", t.Path())
 		}
 
 		fmt.Fprintln(&modulesContent, "# "+t.Path()+" "+t.Version())
@@ -355,9 +359,8 @@ var verifyErrorDirRe = regexp.MustCompile(`dir has been modified \((.*?)\)`)
 // which are stored in a local downloaded source cache, have not been
 // modified since being downloaded.
 func (c *Client) Verify(clean bool) error {
-	// TODO1 add path to mod clean
+	// TODO(bep) add path to mod clean
 	err := c.runVerify()
-
 	if err != nil {
 		if clean {
 			m := verifyErrorDirRe.FindAllStringSubmatch(err.Error(), -1)
@@ -450,7 +453,6 @@ func (c *Client) listGoMods() (goModules, error) {
 	}
 
 	return modules, err
-
 }
 
 func (c *Client) rewriteGoMod(name string, isGoMod map[string]bool) error {
@@ -515,7 +517,6 @@ func (c *Client) rewriteGoModRewrite(name string, isGoMod map[string]bool) ([]by
 	}
 
 	return b.Bytes(), nil
-
 }
 
 func (c *Client) rmVendorDir(vendorDir string) error {
@@ -539,13 +540,15 @@ func (c *Client) runGo(
 	ctx context.Context,
 	stdout io.Writer,
 	args ...string) error {
-
 	if c.goBinaryStatus != 0 {
 		return nil
 	}
 
 	stderr := new(bytes.Buffer)
-	cmd := exec.CommandContext(ctx, "go", args...)
+	cmd, err := hexec.SafeCommandContext(ctx, "go", args...)
+	if err != nil {
+		return err
+	}
 
 	cmd.Env = c.environ
 	cmd.Dir = c.ccfg.WorkingDir
@@ -613,6 +616,24 @@ func (c *Client) shouldVendor(path string) bool {
 	return c.noVendor == nil || !c.noVendor.Match(path)
 }
 
+func (c *Client) createThemeDirname(modulePath string, isProjectMod bool) (string, error) {
+	invalid := errors.Errorf("invalid module path %q; must be relative to themesDir when defined outside of the project", modulePath)
+
+	modulePath = filepath.Clean(modulePath)
+	if filepath.IsAbs(modulePath) {
+		if isProjectMod {
+			return modulePath, nil
+		}
+		return "", invalid
+	}
+
+	moduleDir := filepath.Join(c.ccfg.ThemesDir, modulePath)
+	if !isProjectMod && !strings.HasPrefix(moduleDir, c.ccfg.ThemesDir) {
+		return "", invalid
+	}
+	return moduleDir, nil
+}
+
 // ClientConfig configures the module Client.
 type ClientConfig struct {
 	Fs     afero.Fs
@@ -631,6 +652,9 @@ type ClientConfig struct {
 
 	// Absolute path to the project's themes dir.
 	ThemesDir string
+
+	// Eg. "production"
+	Environment string
 
 	CacheDir     string // Module cache
 	ModuleConfig Config
