@@ -1,6 +1,7 @@
 module github.com/gohugoio/hugo
 
 require (
+	cloud.google.com/go/iam v0.3.0 // indirect
 	github.com/BurntSushi/locker v0.0.0-20171006230638-a6e239ea1c69
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/purell v1.1.1
@@ -23,7 +24,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/gobwas/glob v0.2.3
 	github.com/gohugoio/testmodBuilder/mods v0.0.0-20190520184928-c56af20f2e95
-	github.com/google/go-cmp v0.5.2
+	github.com/google/go-cmp v0.5.8
 	github.com/gorilla/websocket v1.4.2
 	github.com/jdkato/prose v1.2.0
 	github.com/kylelemons/godebug v1.1.0
@@ -53,14 +54,14 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.7.1
 	github.com/tdewolff/minify/v2 v2.6.2
-	github.com/yuin/goldmark v1.2.1
+	github.com/yuin/goldmark v1.3.5
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	gocloud.dev v0.15.0
 	golang.org/x/image v0.0.0-20191214001246-9130b4cfad52
-	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/text v0.3.3
-	google.golang.org/api v0.13.0
+	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/text v0.3.7
+	google.golang.org/api v0.79.0
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/ini.v1 v1.51.1 // indirect
 	gopkg.in/yaml.v2 v2.3.0
