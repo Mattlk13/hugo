@@ -18,7 +18,7 @@ require (
 	github.com/evanw/esbuild v0.7.18
 	github.com/fortytw2/leaktest v1.3.0
 	github.com/frankban/quicktest v1.11.1
-	github.com/fsnotify/fsnotify v1.4.9
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/getkin/kin-openapi v0.22.1
 	github.com/ghodss/yaml v1.0.0
 	github.com/gobwas/glob v0.2.3
@@ -39,7 +39,7 @@ require (
 	github.com/nicksnyder/go-i18n/v2 v2.1.1
 	github.com/niklasfasching/go-org v1.3.2
 	github.com/olekukonko/tablewriter v0.0.4
-	github.com/pelletier/go-toml v1.8.1
+	github.com/pelletier/go-toml v1.9.5
 	github.com/pkg/errors v0.9.1
 	github.com/rogpeppe/go-internal v1.6.2
 	github.com/russross/blackfriday v1.5.3-0.20200218234912-41c5fccfd6f6
@@ -52,7 +52,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.7.1
-	github.com/tdewolff/minify/v2 v2.6.2
+	github.com/tdewolff/minify/v2 v2.21.1
 	github.com/yuin/goldmark v1.2.1
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	gocloud.dev v0.15.0
